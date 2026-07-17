@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#073b3a" />
+    <meta
+      name="description"
+      content="OYO Compass is an Own Your Options AI coach PWA for life, future self work, vision boards, journaling, gratitude, goals, wellbeing, business, and community."
+    />
+    <title>OYO Compass</title>
+    <link rel="manifest" href="manifest.webmanifest?v=33" />
+    <link rel="stylesheet" href="styles.css?v=33" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.setTimeout(() => {
+          const app = document.querySelector("#app");
+          if (app && !app.textContent.trim()) {
+            app.innerHTML = `
+              <main class="login-page">
+                <section class="login-card" aria-label="App recovery">
+                  <div>
+                    <p class="eyebrow">OYO Compass</p>
+                    <h2>Refresh needed.</h2>
+                    <p class="notice">The app is clearing an older cached version. Refresh this page once more, or open it in a private window.</p>
+                  </div>
+                  <button class="btn primary" onclick="window.location.reload()">Refresh OYO Compass</button>
+                  <p class="login-copyright">© 2026 Own Your Options™. All rights reserved.</p>
+                </section>
+              </main>
+            `;
+          }
+        }, 2500);
+      });
+    </script>
+    <script type="module" src="app.js?v=33"></script>
+  </body>
+</html>
