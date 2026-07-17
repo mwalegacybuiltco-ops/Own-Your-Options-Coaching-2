@@ -563,6 +563,7 @@ let cloudUser = null;
 let authReady = false;
 let publicSettings = {};
 const app = document.querySelector("#app");
+const PRIVACY_VERSION = 2;
 
 function userStateKey(uid) {
   return `oyoCoachState:${uid}`;
@@ -572,7 +573,9 @@ function loadStateForUser(uid) {
   try {
     const saved = localStorage.getItem(userStateKey(uid));
     if (!saved) return clone(starterState);
-    return normalizeState({ ...clone(starterState), ...JSON.parse(saved) });
+    const parsed = JSON.parse(saved);
+    if (!isTrustedPrivateState(parsed, uid)) return clone(starterState);
+    return normalizeState({ ...clone(starterState), ...parsed });
   } catch (error) {
     localStorage.removeItem(userStateKey(uid));
     return clone(starterState);
@@ -591,7 +594,18 @@ function saveState() {
 function privateStateForSave(sourceState) {
   const privateState = clone(sourceState);
   privateState.community = clone(starterState.community);
+  privateState.privacyVersion = PRIVACY_VERSION;
+  privateState.dataOwnerUid = cloudUser?.uid || sourceState.user?.uid || "";
+  privateState.dataOwnerEmail = normalizeEmail(cloudUser?.email || sourceState.user?.email || "");
   return privateState;
+}
+
+function isTrustedPrivateState(savedState, uid) {
+  return Boolean(
+    savedState &&
+      savedState.privacyVersion === PRIVACY_VERSION &&
+      savedState.dataOwnerUid === uid
+  );
 }
 
 function normalizeState(nextState) {
@@ -1219,6 +1233,7 @@ function renderAdmin() {
           <div class="item"><span class="tag">Admin email</span><strong>${escapeHtml(state.user.email)}</strong><p class="muted">Only this configured owner email can see this Admin tab.</p></div>
           <div class="item"><span class="tag">Members</span><strong>Members can only read and write their own user record.</strong><p class="muted">Protected by Firestore rules at /users/{userId}.</p></div>
           <div class="item"><span class="tag premium">Admin data</span><strong>Only admin can read and write /admin records.</strong><p class="muted">Protected by Firestore rules using the owner email.</p></div>
+          <div class="item"><span class="tag">Privacy repair</span><strong>Reset this signed-in account if old cached data appears.</strong><p class="muted">This clears private goals, journal, actions, coach memory, and vision for this signed-in account only.</p><button class="btn small" id="resetPrivateData" type="button">Reset My Private Data</button></div>
         </div>
       </div>
       <div class="module accent">
@@ -1395,6 +1410,24 @@ function bindEvents() {
     state.premium = true;
     saveState();
     showAppMessage("Premium is open on your admin account. Use the Premium Pack Preview buttons below to inspect each section.");
+    render();
+  });
+
+  document.querySelector("#resetPrivateData")?.addEventListener("click", async () => {
+    if (!cloudUser) return showAppMessage("Sign in first.");
+    const confirmed = window.confirm("Reset private app data for this signed-in account only? Community posts are not deleted.");
+    if (!confirmed) return;
+    const currentUser = {
+      name: state.user?.name || cloudUser.displayName || cloudUser.email.split("@")[0],
+      email: cloudUser.email,
+      uid: cloudUser.uid
+    };
+    state = normalizeState(clone(starterState));
+    state.user = currentUser;
+    state.community = await loadCommunityPosts().catch(() => clone(starterState.community));
+    await saveCloudState(cloudUser.uid, privateStateForSave(state));
+    localStorage.setItem(userStateKey(cloudUser.uid), JSON.stringify(privateStateForSave(state)));
+    showAppMessage("Private data reset for this signed-in account.");
     render();
   });
 
@@ -2122,7 +2155,7 @@ async function boot() {
         } catch (communityError) {
           communityPosts = [];
         }
-        if (cloudState) {
+        if (cloudState && isTrustedPrivateState(cloudState, user.uid)) {
           state = normalizeState(cloudState);
           state.user = {
             ...(state.user || {}),
@@ -2131,7 +2164,7 @@ async function boot() {
             uid: user.uid
           };
         } else {
-          state = loadStateForUser(user.uid);
+          state = cloudState ? clone(starterState) : loadStateForUser(user.uid);
           state.user = {
             name: state.user?.name || user.displayName || user.email.split("@")[0],
             email: user.email,
