@@ -4,6 +4,8 @@ let auth;
 let db;
 let authApi;
 let firestoreApi;
+let functionsApi;
+let cloudFunctions;
 
 export function isFirebaseReady() {
   return hasFirebaseConfig();
@@ -14,13 +16,16 @@ export async function startFirebaseAuth(onChange) {
   const appApi = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
   authApi = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
   firestoreApi = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+  functionsApi = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
 
   const { initializeApp } = appApi;
   const { getAuth, onAuthStateChanged } = authApi;
   const { getFirestore } = firestoreApi;
+  const { getFunctions } = functionsApi;
   const app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  cloudFunctions = getFunctions(app);
   onAuthStateChanged(auth, onChange);
   return true;
 }
@@ -117,4 +122,13 @@ export async function saveAdminSettings(user, settings) {
     },
     { merge: true }
   );
+}
+
+export async function askAICoach(payload) {
+  if (!cloudFunctions || !functionsApi) {
+    throw new Error("AI coach is not connected yet.");
+  }
+  const askCoach = functionsApi.httpsCallable(cloudFunctions, "askCoach");
+  const result = await askCoach(payload);
+  return result.data?.reply || "";
 }

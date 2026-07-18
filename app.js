@@ -1,5 +1,6 @@
 import {
   addCommunityPost,
+  askAICoach,
   createAccount,
   isFirebaseReady,
   loadCommunityPosts,
@@ -1589,14 +1590,71 @@ function bindEvents() {
   });
 }
 
-function sendCoachMessage() {
+async function sendCoachMessage() {
   const input = document.querySelector("#coachText");
   const text = input.value.trim();
   if (!text) return;
+  input.value = "";
   state.coachMessages.push({ role: "user", text });
-  state.coachMessages.push({ role: "coach", text: coachReply(text) });
+  const thinkingMessage = { role: "coach", text: `${selectedCoach().name} is listening...` };
+  state.coachMessages.push(thinkingMessage);
+  render();
+  let reply = "";
+  try {
+    reply = await askAICoach(buildAICoachPayload(text));
+  } catch (error) {
+    reply = `${coachReply(text)}\n\nNote: I am using the built-in coach while the live AI coach is being connected.`;
+  }
+  const index = state.coachMessages.indexOf(thinkingMessage);
+  if (index >= 0) {
+    state.coachMessages[index] = { role: "coach", text: reply };
+  } else {
+    state.coachMessages.push({ role: "coach", text: reply });
+  }
   saveState();
   render();
+}
+
+function buildAICoachPayload(message) {
+  const growth = growthInsights();
+  const coach = selectedCoach();
+  return {
+    message,
+    user: {
+      name: state.user?.name || "OYO Member",
+      email: state.user?.email || ""
+    },
+    coach: {
+      id: coach.id,
+      name: coach.name,
+      identity: coach.identity,
+      voice: coach.voice,
+      signature: coach.signature,
+      background: coach.background
+    },
+    premiumAccess: canAccessPremium(),
+    memory: {
+      stage: growth.stage,
+      focus: growth.focus,
+      pattern: growth.pattern,
+      nextStep: growth.nextStep,
+      futureSelf: state.futureSelf,
+      preferredStyle: state.coachProfile.preferredStyle,
+      resistance: state.coachProfile.resistance,
+      evidenceLog: state.coachProfile.evidenceLog.slice(0, 6),
+      milestones: state.coachProfile.milestones.slice(0, 6)
+    },
+    currentLife: {
+      goals: state.goals.slice(0, 8),
+      actions: state.actions.slice(0, 8),
+      gratitude: state.gratitude.slice(0, 8),
+      vision: state.vision.slice(0, 8),
+      journal: state.journal.slice(0, 5)
+    },
+    recentMessages: state.coachMessages
+      .filter((entry) => entry !== undefined && entry.text && entry.text !== `${coach.name} is listening...`)
+      .slice(-10)
+  };
 }
 
 function scrollChatToBottom() {

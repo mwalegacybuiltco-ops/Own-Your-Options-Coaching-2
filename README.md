@@ -30,6 +30,7 @@ An installable PWA for the OYO Own Your Options coaching experience.
 - Admin can preview premium pack, and users can request password reset from the login screen
 - Admin can edit Premium payment and LWA links from inside the Admin screen
 - Admin can add free premium tester emails for people helping test the app
+- Live AI coach support through a private Firebase Cloud Function, with the built-in coach kept as a backup
 
 ## Run Locally
 
@@ -63,6 +64,60 @@ Included GitHub hosting files:
 - `404.html` fallback for direct visits
 
 Other static hosts are still supported through `netlify.toml`, `vercel.json`, `_headers`, and `_redirects`.
+
+## Turn On The Live AI Coach
+
+The website files can go on GitHub Pages, but the OpenAI key must never be placed in GitHub. The secure AI coach lives in Firebase Functions.
+
+Important: Firebase may ask you to upgrade from Spark to Blaze/pay-as-you-go before it lets you deploy Cloud Functions.
+
+Do this after your GitHub files are updated:
+
+1. Install the Firebase tools if they are not already installed:
+
+```text
+npm install -g firebase-tools
+```
+
+2. In Terminal, open the app folder.
+
+3. Log in to Firebase:
+
+```text
+firebase login
+```
+
+4. Connect this folder to your Firebase project:
+
+```text
+firebase use own-your-options-compass
+```
+
+5. Install the background AI coach code:
+
+```text
+cd functions
+npm install
+cd ..
+```
+
+6. Add your OpenAI API key as a private Firebase secret:
+
+```text
+firebase functions:secrets:set OPENAI_API_KEY
+```
+
+Paste the OpenAI key only when Firebase asks for it in Terminal. Do not paste the key into `app.js`, `firebase-config.js`, GitHub, or chat.
+
+7. Deploy the live AI coach:
+
+```text
+firebase deploy --only functions
+```
+
+After this finishes, the app's AI Coach Send button will try the live coach first. If the function is not deployed yet, the app will still answer with the built-in coach backup.
+
+The function is already set to use the default model in `functions/index.js`, so the only private value you need to add right now is `OPENAI_API_KEY`.
 
 ## Make Each Person's Experience Private With Firebase
 
