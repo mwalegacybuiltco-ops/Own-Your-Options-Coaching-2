@@ -19,6 +19,10 @@ export const appLinks = {
   premiumPayment: "PASTE_YOUR_PREMIUM_PAYMENT_LINK_HERE"
 };
 
+export const appFeatures = {
+  useLiveAICoach: false
+};
+
 export function hasFirebaseConfig() {
   return !Object.values(firebaseConfig).some((value) => value.startsWith("PASTE_"));
 }

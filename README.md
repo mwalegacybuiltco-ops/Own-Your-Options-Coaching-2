@@ -4,6 +4,8 @@ An installable PWA for the OYO Own Your Options coaching experience.
 
 © 2026 Own Your Options™. All rights reserved.
 
+Wellness disclaimer: OYO Compass provides coaching, reflection, education, and personal growth support. It does not replace a psychologist, psychiatrist, therapist, counsellor, doctor, medical provider, legal advisor, financial advisor, diagnosis, treatment, or emergency support.
+
 ## What Is Included
 
 - Firebase login home screen for live user accounts
@@ -31,6 +33,12 @@ An installable PWA for the OYO Own Your Options coaching experience.
 - Admin can edit Premium payment and LWA links from inside the Admin screen
 - Admin can add free premium tester emails for people helping test the app
 - Live AI coach support through a private Firebase Cloud Function, with the built-in coach kept as a backup
+- Private starter questionnaire so the built-in coach can personalize each member's responses without requiring OpenAI setup
+- Coach memory also learns from future self, vision board, journal, gratitude, goals, and daily actions
+- Daily Notes tab so members can keep private dated notes inside the app
+- Expanded community categories for Questions, Business Wins, Lifestyle, Goals, Gratitude, Support, and Daily Wins
+- Expanded exercise and resource variety across identity, belief work, future self, state shift, confidence, lifestyle, relationships, money, and business
+- Conversational coach replies that answer the member's actual question first, then connect it to their personal compass
 
 ## Run Locally
 
@@ -67,7 +75,9 @@ Other static hosts are still supported through `netlify.toml`, `vercel.json`, `_
 
 ## Turn On The Live AI Coach
 
-The website files can go on GitHub Pages, but the OpenAI key must never be placed in GitHub. The secure AI coach lives in Firebase Functions.
+This step is optional. The app now includes a private starter questionnaire that helps the built-in coach personalize responses without setting up OpenAI.
+
+The website files can go on GitHub Pages, but if you ever want the coach to use a real OpenAI model, the OpenAI key must never be placed in GitHub. The secure AI coach lives in Firebase Functions.
 
 Important: Firebase may ask you to upgrade from Spark to Blaze/pay-as-you-go before it lets you deploy Cloud Functions.
 
@@ -115,7 +125,7 @@ Paste the OpenAI key only when Firebase asks for it in Terminal. Do not paste th
 firebase deploy --only functions
 ```
 
-After this finishes, the app's AI Coach Send button will try the live coach first. If the function is not deployed yet, the app will still answer with the built-in coach backup.
+After this finishes, open `firebase-config.js` and change `useLiveAICoach` to `true`. Until then, the app uses the personalized built-in coach.
 
 The function is already set to use the default model in `functions/index.js`, so the only private value you need to add right now is `OPENAI_API_KEY`.
 
@@ -175,6 +185,6 @@ Important: the payment link sends people to pay, but it does not automatically m
 
 - Replace local login with real authentication.
 - Connect premium state to Stripe, Lemon Squeezy, or another payment provider.
-- Replace the prototype coach rules with a real AI backend and user memory.
+- Keep improving the built-in coach prompts, or turn on the optional Firebase Function when you are ready for a live OpenAI coach.
 - Store journals, goals, posts, and vision board assets in a database.
 - Add admin tools for resources, LWA links, cards, exercises, and community moderation.

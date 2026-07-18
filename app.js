@@ -14,7 +14,7 @@ import {
   signOutUser,
   startFirebaseAuth
 } from "./firebase-service.js";
-import { getAppLink, isAdminEmail, isPremiumTesterEmail } from "./firebase-config.js";
+import { appFeatures, getAppLink, isAdminEmail, isPremiumTesterEmail } from "./firebase-config.js";
 
 const cards = [
   {
@@ -62,6 +62,16 @@ const cards = [
 const starterState = {
   user: null,
   premium: false,
+  onboarding: {
+    completed: false,
+    primaryPath: "Whole life",
+    desiredFeeling: "",
+    currentChallenge: "",
+    biggestGoal: "",
+    supportStyle: "Warm and practical",
+    businessInterest: "Maybe later",
+    lifeAreas: ["Self-trust", "Peace", "Purpose"]
+  },
   activeView: "dashboard",
   coachProfile: {
     stage: "Clarity",
@@ -97,6 +107,13 @@ const starterState = {
       body: "I am practicing the identity before the result arrives."
     }
   ],
+  notes: [
+    {
+      date: "Today",
+      title: "Daily note",
+      body: "Use this space to capture thoughts, reminders, ideas, and what you want your coach to remember today."
+    }
+  ],
   gratitude: ["My voice", "New choices", "People who believe in me"],
   actions: [
     { text: "Send one courageous invitation", done: false },
@@ -106,6 +123,7 @@ const starterState = {
   cardShift: 0,
   activeExercise: 0,
   activeResource: 0,
+  activeCommunityCategory: "All",
   goals: [
     { title: "Create more peace and freedom", progress: 45, area: "Life" },
     { title: "Deepen daily self-trust", progress: 70, area: "Self" }
@@ -120,11 +138,32 @@ const starterState = {
   community: [
     {
       name: "April",
-      topic: "Wins",
+      topic: "Business Wins",
       text: "Today I chose action before overthinking. That is the option I am owning."
+    },
+    {
+      name: "OYO Compass",
+      topic: "Questions",
+      text: "Ask for support, clarity, ideas, or encouragement around the option you are choosing."
+    },
+    {
+      name: "OYO Compass",
+      topic: "Lifestyle",
+      text: "Share the life moments you are building this for: peace, health, family, home, freedom, and joy."
     }
   ]
 };
+
+const communityCategories = [
+  "All",
+  "Questions",
+  "Business Wins",
+  "Lifestyle",
+  "Goals",
+  "Gratitude",
+  "Support",
+  "Daily Wins"
+];
 
 const resources = [
   {
@@ -198,6 +237,42 @@ const resources = [
     tier: "Premium",
     type: "Community",
     detail: "Conversation starters for support circles, weekly wins, courage posts, and reflection threads."
+  },
+  {
+    title: "Confidence Evidence Vault",
+    tier: "Premium",
+    type: "Confidence",
+    detail: "A place to build proof, track courage, and turn small wins into self-trust."
+  },
+  {
+    title: "Relationship Boundary Builder",
+    tier: "Premium",
+    type: "Relationships",
+    detail: "Prompts for kind boundaries, honest requests, and staying connected to self-respect."
+  },
+  {
+    title: "Lifestyle Reset Menu",
+    tier: "Premium",
+    type: "Lifestyle",
+    detail: "Small resets for home, health, peace, energy, family rhythm, and daily support."
+  },
+  {
+    title: "Business Follow-Up Scripts",
+    tier: "Premium",
+    type: "Business",
+    detail: "Clean invitation and follow-up scripts for aligned income without pressure."
+  },
+  {
+    title: "Future Self Decision Guide",
+    tier: "Premium",
+    type: "Future self",
+    detail: "A decision filter for choosing the option that matches peace, freedom, self-respect, and future identity."
+  },
+  {
+    title: "Money Mindset Reframe Sheet",
+    tier: "Premium",
+    type: "Money",
+    detail: "Prompts for shifting money pressure into stewardship, options, and aligned receiving."
   }
 ];
 
@@ -205,57 +280,128 @@ const nlpExercises = [
   {
     title: "Identity Reframe",
     tier: "Free",
+    category: "Identity",
     body: "Replace 'I am behind' with 'I am building evidence at the pace my nervous system can hold.'"
   },
   {
     title: "Future Pacing",
     tier: "Free",
+    category: "Future Self",
     body: "Imagine tonight after your aligned action is complete. What did you do first?"
   },
   {
     title: "State Shift Breath",
     tier: "Free",
+    category: "State Shift",
     body: "Take three slow breaths, name the feeling, then ask: what option is still available while this feeling is here?"
+  },
+  {
+    title: "Self-Trust Evidence Check",
+    tier: "Free",
+    category: "Confidence",
+    body: "Find one small piece of proof that you have followed through before, then choose one action that repeats that identity."
+  },
+  {
+    title: "Peace Before Pressure",
+    tier: "Free",
+    category: "Lifestyle",
+    body: "Name the pressure, choose one peace-giving option, and lower the next step until it feels doable."
   },
   {
     title: "Parts Integration",
     tier: "Premium",
+    category: "Parts Work",
     body: "Let the protective part and the ambitious part each state their positive intent, then choose one integrated action."
   },
   {
     title: "Belief Ladder",
     tier: "Premium",
+    category: "Belief Work",
     body: "Move from doubt to believable expansion through five bridge thoughts."
   },
   {
     title: "Anchor the Future Self",
     tier: "Premium",
+    category: "Future Self",
     body: "Choose one future-self feeling, pair it with a hand-on-heart anchor, and rehearse one aligned action from that state."
   },
   {
     title: "Submodalities Shift",
     tier: "Premium",
+    category: "Belief Work",
     body: "Picture the limiting belief as an image. Make it smaller, farther away, dimmer, and quieter. Bring the new belief closer, brighter, and warmer."
   },
   {
     title: "Pattern Interrupt",
     tier: "Premium",
+    category: "State Shift",
     body: "When the old spiral starts, stand up, change your posture, say 'new option,' and take one action that proves a new pattern."
   },
   {
     title: "Aligned Income Reframe",
     tier: "Premium",
+    category: "Business",
     body: "Replace 'selling is pressure' with 'I am offering an option that may support someone's life.' Then send one clean invitation."
   },
   {
     title: "Evidence Stacking",
     tier: "Premium",
+    category: "Confidence",
     body: "List five moments you already followed through. Let those become evidence that your next action is safe to begin."
   },
   {
     title: "Timeline Preview",
     tier: "Premium",
+    category: "Future Self",
     body: "Imagine yourself 90 days from now after consistent aligned action. Look back and name the first three small moves that mattered."
+  },
+  {
+    title: "Old Story Rewrite",
+    tier: "Premium",
+    category: "Identity",
+    body: "Name the story that keeps repeating, identify who it makes you become, and rewrite it into an option-owning identity."
+  },
+  {
+    title: "Belief Evidence Bridge",
+    tier: "Premium",
+    category: "Belief Work",
+    body: "Take one belief that feels far away and build three evidence-based bridge thoughts your nervous system can accept."
+  },
+  {
+    title: "Future Self Decision Filter",
+    tier: "Premium",
+    category: "Future Self",
+    body: "Run a decision through peace, self-respect, freedom, and future-self standards before choosing the next step."
+  },
+  {
+    title: "Nervous System Permission Slip",
+    tier: "Premium",
+    category: "State Shift",
+    body: "Give the protective part permission to move slowly while still choosing one safe, visible action."
+  },
+  {
+    title: "Aligned Invitation Practice",
+    tier: "Premium",
+    category: "Business",
+    body: "Write a clean invitation that offers an option without pressure, then choose one person to send it to."
+  },
+  {
+    title: "Follow-Up Confidence Script",
+    tier: "Premium",
+    category: "Business",
+    body: "Create a kind follow-up message that honors the relationship, the offer, and your own confidence."
+  },
+  {
+    title: "Boundary Rehearsal",
+    tier: "Premium",
+    category: "Relationships",
+    body: "Practice one honest sentence that protects your peace without abandoning kindness."
+  },
+  {
+    title: "Life Area Reset",
+    tier: "Premium",
+    category: "Lifestyle",
+    body: "Choose one life area that feels heavy and create a 15-minute reset that brings it back into ownership."
   }
 ];
 
@@ -300,6 +446,34 @@ const exerciseDetails = {
       "The feeling present right now is...",
       "The option still available is...",
       "The kindest next move is..."
+    ]
+  },
+  "Self-Trust Evidence Check": {
+    time: "5 minutes",
+    steps: [
+      "Write one moment when you did follow through, even if it was small.",
+      "Name the quality that moment proves about you.",
+      "Choose one action today that uses that same quality.",
+      "After you do it, add it to your evidence log."
+    ],
+    prompts: [
+      "A time I followed through was...",
+      "This proves I am someone who...",
+      "Today I can use that proof by..."
+    ]
+  },
+  "Peace Before Pressure": {
+    time: "4 minutes",
+    steps: [
+      "Write the pressure sentence exactly as it sounds in your head.",
+      "Ask what peace would choose if it still cared about the result.",
+      "Lower the action until your body can begin.",
+      "Take the first peaceful step."
+    ],
+    prompts: [
+      "The pressure says...",
+      "Peace would choose...",
+      "The smaller first step is..."
     ]
   },
   "Parts Integration": {
@@ -413,6 +587,118 @@ const exerciseDetails = {
       "The three actions that mattered were...",
       "Today I begin with..."
     ]
+  },
+  "Old Story Rewrite": {
+    time: "9 minutes",
+    steps: [
+      "Write the old story in one honest sentence.",
+      "Name what identity that story asks you to practice.",
+      "Write the Own Your Options version of the story.",
+      "Choose one action that proves the new story today."
+    ],
+    prompts: [
+      "The old story is...",
+      "The identity I am choosing now is...",
+      "The action that proves the rewrite is..."
+    ]
+  },
+  "Belief Evidence Bridge": {
+    time: "8 minutes",
+    steps: [
+      "Choose one belief that feels too far away.",
+      "List three pieces of evidence that make it slightly more believable.",
+      "Write one bridge thought that uses that evidence.",
+      "Repeat the bridge thought before your next action."
+    ],
+    prompts: [
+      "The belief I am growing into is...",
+      "The evidence I already have is...",
+      "The bridge thought I can hold today is..."
+    ]
+  },
+  "Future Self Decision Filter": {
+    time: "7 minutes",
+    steps: [
+      "Write the decision in front of you.",
+      "Ask which option protects peace, self-respect, freedom, and future self.",
+      "Notice which choice creates the cleanest evidence.",
+      "Choose the next step, not the whole lifetime."
+    ],
+    prompts: [
+      "The decision is...",
+      "Future self would choose...",
+      "The clean next step is..."
+    ]
+  },
+  "Nervous System Permission Slip": {
+    time: "6 minutes",
+    steps: [
+      "Name the part of you that feels cautious.",
+      "Thank it for trying to protect you.",
+      "Write permission to move slowly and still move.",
+      "Choose one safe action that creates evidence."
+    ],
+    prompts: [
+      "The protective part is trying to...",
+      "I give myself permission to...",
+      "The safe action is..."
+    ]
+  },
+  "Aligned Invitation Practice": {
+    time: "10 minutes",
+    steps: [
+      "Name who the invitation could support.",
+      "Write the invitation as an option, not pressure.",
+      "Keep it clear, kind, and easy to respond to.",
+      "Send or schedule the invitation."
+    ],
+    prompts: [
+      "This option may support...",
+      "The invitation can say...",
+      "The clean next business action is..."
+    ]
+  },
+  "Follow-Up Confidence Script": {
+    time: "8 minutes",
+    steps: [
+      "Name the person you are following up with.",
+      "Remind yourself that follow-up is service, not pressure.",
+      "Write one simple check-in message.",
+      "Send it or add it to your actions."
+    ],
+    prompts: [
+      "The person I am following up with is...",
+      "The kind message can say...",
+      "After sending it, I will remind myself..."
+    ]
+  },
+  "Boundary Rehearsal": {
+    time: "9 minutes",
+    steps: [
+      "Write the truth without editing it.",
+      "Name the boundary or request that protects your peace.",
+      "Soften the wording while keeping the truth intact.",
+      "Practice saying it out loud once."
+    ],
+    prompts: [
+      "The truth is...",
+      "The boundary/request is...",
+      "The sentence I can practice is..."
+    ]
+  },
+  "Life Area Reset": {
+    time: "15 minutes",
+    steps: [
+      "Choose one area: body, home, money, relationship, purpose, or peace.",
+      "Name what would create the most relief.",
+      "Set a 15-minute timer.",
+      "Do only the reset action, then stop and record the evidence."
+    ],
+    prompts: [
+      "The area asking for care is...",
+      "The reset action is...",
+      "After 15 minutes, I noticed..."
+    ]
   }
 };
 
@@ -512,6 +798,54 @@ const resourceDetails = {
       "Celebrate one person who owned an option."
     ],
     prompts: ["My win is...", "The support I am asking for is..."]
+  },
+  "Confidence Evidence Vault": {
+    sections: [
+      "Track small moments of courage, visibility, follow-through, and self-trust.",
+      "Turn each piece of evidence into an identity statement.",
+      "Review the vault before taking a brave next step."
+    ],
+    prompts: ["Evidence I created today is...", "This proves I am becoming...", "The next brave action is..."]
+  },
+  "Relationship Boundary Builder": {
+    sections: [
+      "Separate the feeling, the need, and the request.",
+      "Write the boundary with kindness and clarity.",
+      "Choose the action that protects peace without abandoning connection."
+    ],
+    prompts: ["The truth I need to honor is...", "The boundary/request is...", "I can say this with kindness by..."]
+  },
+  "Lifestyle Reset Menu": {
+    sections: [
+      "Choose one life area: body, home, schedule, family, energy, or peace.",
+      "Pick one reset that can happen in 15 minutes.",
+      "Record how the reset changed your state."
+    ],
+    prompts: ["The life area asking for care is...", "A 15-minute reset could be...", "After the reset, I feel..."]
+  },
+  "Business Follow-Up Scripts": {
+    sections: [
+      "Choose an invitation or follow-up that feels clean.",
+      "Make the message short, kind, and easy to respond to.",
+      "Track the action as evidence, not as a verdict on your worth."
+    ],
+    prompts: ["The person I can follow up with is...", "The message can say...", "After I send it, I will remember..."]
+  },
+  "Future Self Decision Guide": {
+    sections: [
+      "Write the decision in front of you.",
+      "Filter it through peace, freedom, health, family, self-respect, and future identity.",
+      "Choose the next step that creates the cleanest evidence."
+    ],
+    prompts: ["The decision is...", "Future self would choose this because...", "The next aligned action is..."]
+  },
+  "Money Mindset Reframe Sheet": {
+    sections: [
+      "Name the money pressure story without judging it.",
+      "Ask what option, stewardship, or aligned receiving is available.",
+      "Choose one money action that creates clarity or peace."
+    ],
+    prompts: ["The pressure story is...", "The reframe I can practice is...", "One money action I can take is..."]
   }
 };
 
@@ -610,6 +944,13 @@ function isTrustedPrivateState(savedState, uid) {
 }
 
 function normalizeState(nextState) {
+  nextState.onboarding = {
+    ...clone(starterState.onboarding),
+    ...(nextState.onboarding || {})
+  };
+  if (!Array.isArray(nextState.onboarding.lifeAreas)) {
+    nextState.onboarding.lifeAreas = clone(starterState.onboarding.lifeAreas);
+  }
   nextState.coachProfile = {
     ...clone(starterState.coachProfile),
     ...(nextState.coachProfile || {})
@@ -633,6 +974,9 @@ function normalizeState(nextState) {
       ? "A life that feels peaceful, free, and fully mine"
       : item
   );
+  nextState.journal = Array.isArray(nextState.journal) ? nextState.journal : clone(starterState.journal);
+  nextState.notes = Array.isArray(nextState.notes) ? nextState.notes : clone(starterState.notes);
+  nextState.gratitude = Array.isArray(nextState.gratitude) ? nextState.gratitude : clone(starterState.gratitude);
   nextState.actions = (nextState.actions || starterState.actions).map((action) => ({
     ...action,
     text:
@@ -647,6 +991,9 @@ function normalizeState(nextState) {
   );
   nextState.activeExercise = Number.isInteger(nextState.activeExercise) ? nextState.activeExercise : 0;
   nextState.activeResource = Number.isInteger(nextState.activeResource) ? nextState.activeResource : 0;
+  nextState.activeCommunityCategory = communityCategories.includes(nextState.activeCommunityCategory)
+    ? nextState.activeCommunityCategory
+    : "All";
   return nextState;
 }
 
@@ -714,6 +1061,7 @@ function renderLogin() {
           <input id="loginPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
         </label>
         <p class="notice" id="notice">${firebaseEnabled ? "Your data will be private to your login." : "Live mode is locked until your Firebase config is pasted into firebase-config.js."}</p>
+        ${renderWellnessDisclaimer()}
         <div class="button-row">
           <button class="btn primary" id="loginBtn" ${setupRequired ? "disabled" : ""}>Sign In</button>
           <button class="btn" id="createAccountBtn" ${setupRequired ? "disabled" : ""}>Create Account</button>
@@ -733,6 +1081,7 @@ function renderApp() {
     ["growth", "Growth Memory"],
     ["future", "Future Self"],
     ["vision", "Vision + Journal"],
+    ["notes", "Daily Notes"],
     ["cards", "Daily Cards"],
     ["exercises", "Exercises"],
     ["goals", "Goals"],
@@ -772,17 +1121,29 @@ function renderCopyright() {
     <footer class="app-footer">
       <span>© 2026 Own Your Options™. All rights reserved.</span>
       <span>OYO Compass is part of Own Your Options™.</span>
+      <span>Coaching support only; not a replacement for mental health or medical care.</span>
     </footer>
   `;
 }
 
+function renderWellnessDisclaimer() {
+  return `
+    <div class="wellness-disclaimer" role="note">
+      <strong>Wellness disclaimer:</strong>
+      OYO Compass provides coaching, reflection, education, and personal growth support. It does not replace a psychologist, psychiatrist, therapist, counsellor, doctor, medical provider, legal advisor, financial advisor, diagnosis, treatment, or emergency support. If you are in crisis, feel unsafe, or may harm yourself or someone else, contact emergency services or a qualified crisis/mental-health professional right away.
+    </div>
+  `;
+}
+
 function renderView() {
+  if (!state.onboarding?.completed) return renderOnboarding();
   const map = {
     dashboard: renderDashboard,
     coach: renderCoach,
     growth: renderGrowth,
     future: renderFuture,
     vision: renderVisionJournal,
+    notes: renderDailyNotes,
     cards: renderCards,
     exercises: renderExercises,
     goals: renderGoals,
@@ -793,6 +1154,50 @@ function renderView() {
   };
   if (state.activeView === "admin" && !isAdmin()) return renderAdminLocked();
   return (map[state.activeView] || renderDashboard)();
+}
+
+function renderOnboarding() {
+  const onboarding = state.onboarding || starterState.onboarding;
+  const selectedAreas = new Set(onboarding.lifeAreas || []);
+  const areas = ["Self-trust", "Peace", "Confidence", "Health", "Relationships", "Home", "Purpose", "Money", "Business", "Freedom"];
+  return `
+    <section class="onboarding-hero">
+      <div>
+        <p class="eyebrow">Personal Compass Setup</p>
+        <h2>Let your coach learn you first.</h2>
+        <p class="muted">These answers stay private to this person's account and help the built-in OYO coach personalize responses from the very beginning.</p>
+      </div>
+      <span class="tag">Takes 2 minutes</span>
+    </section>
+    <section class="module-grid two onboarding-grid">
+      <div class="module">
+        <label class="field"><span>What do you want this app to support most right now?</span><select id="introPrimaryPath">
+          ${["Whole life", "Future self", "Confidence", "Relationships", "Wellbeing", "Business", "Money mindset", "Purpose"].map((option) => `<option ${option === onboarding.primaryPath ? "selected" : ""}>${option}</option>`).join("")}
+        </select></label>
+        <label class="field"><span>How do you want to feel more often?</span><input id="introDesiredFeeling" value="${escapeHtml(onboarding.desiredFeeling)}" placeholder="Peaceful, confident, free, supported..." /></label>
+        <label class="field"><span>What feels hardest right now?</span><textarea id="introChallenge" placeholder="Tell your coach what you are moving through.">${escapeHtml(onboarding.currentChallenge)}</textarea></label>
+        <label class="field"><span>What is one goal you want support with?</span><input id="introGoal" value="${escapeHtml(onboarding.biggestGoal)}" placeholder="A life, confidence, health, relationship, money, or business goal" /></label>
+      </div>
+      <div class="module accent">
+        <label class="field"><span>How should your coach speak to you?</span><select id="introSupportStyle">
+          ${["Warm and practical", "Gentle and nurturing", "Direct and accountable", "Visionary and future-self focused", "Strategic and business-minded"].map((option) => `<option ${option === onboarding.supportStyle ? "selected" : ""}>${option}</option>`).join("")}
+        </select></label>
+        <label class="field"><span>Is business or LWA part of your current path?</span><select id="introBusinessInterest">
+          ${["Yes, I am building income now", "I am curious", "Maybe later", "No, I want life coaching first"].map((option) => `<option ${option === onboarding.businessInterest ? "selected" : ""}>${option}</option>`).join("")}
+        </select></label>
+        <div class="field">
+          <span>Choose the life areas your coach should remember</span>
+          <div class="choice-grid">
+            ${areas.map((area) => `<label class="choice-pill"><input type="checkbox" value="${escapeHtml(area)}" data-intro-area ${selectedAreas.has(area) ? "checked" : ""} />${escapeHtml(area)}</label>`).join("")}
+          </div>
+        </div>
+        <div class="button-row">
+          <button class="btn primary" id="saveOnboarding">Start My Compass</button>
+          <button class="btn ghost" id="skipOnboarding">Skip For Now</button>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 function renderDashboard() {
@@ -866,6 +1271,7 @@ function renderCoach() {
       <div><span class="card-label">Next Best Step</span><strong>${escapeHtml(growth.nextStep)}</strong></div>
       <button class="btn small" data-view="growth">View Growth Memory</button>
     </section>
+    ${renderWellnessDisclaimer()}
     <section class="module coach-module">
       <div class="chat" id="chatLog">
         ${state.coachMessages
@@ -873,7 +1279,7 @@ function renderCoach() {
           .join("")}
       </div>
       <div class="coach-input">
-        <input id="coachText" placeholder="Ask about life, confidence, relationships, wellbeing, goals, purpose..." />
+        <input id="coachText" placeholder="Talk to your coach. Ask anything about what you are feeling, choosing, building, or moving through..." />
         <button class="btn primary" id="coachSend">Send</button>
       </div>
       <div class="quick-prompts" aria-label="Coach question prompts">
@@ -881,6 +1287,8 @@ function renderCoach() {
         <button class="btn small" type="button" data-coach-prompt="How do I move through feeling stuck?">Stuck</button>
         <button class="btn small" type="button" data-coach-prompt="How can I build confidence right now?">Confidence</button>
         <button class="btn small" type="button" data-coach-prompt="What business action should I take without losing my peace?">Business</button>
+        <button class="btn small" type="button" data-coach-prompt="Help me decide what option to choose.">Decide</button>
+        <button class="btn small" type="button" data-coach-prompt="What do I say in this situation?">Words</button>
       </div>
     </section>
   `;
@@ -892,7 +1300,10 @@ function renderGrowth() {
   return `
     <section class="section-title">
       <div><p class="eyebrow">Growth Memory</p><h2>The app learns the person over time.</h2><p>This is the living OYO profile the coach uses to personalize prompts, reframes, and action steps.</p></div>
-      <button class="btn primary" id="saveGrowth">Save Memory</button>
+      <div class="button-row">
+        <button class="btn" id="retakeOnboarding">Retake Setup</button>
+        <button class="btn primary" id="saveGrowth">Save Memory</button>
+      </div>
     </section>
     <section class="module-grid two">
       <div class="module">
@@ -1011,6 +1422,31 @@ function renderVisionJournal() {
   `;
 }
 
+function renderDailyNotes() {
+  return `
+    <section class="section-title">
+      <div><p class="eyebrow">Daily Notes</p><h2>Keep the day inside the app.</h2><p>Capture thoughts, reminders, ideas, wins, or what you want your coach to remember today.</p></div>
+      <span class="tag">Private</span>
+    </section>
+    <section class="module-grid two">
+      <div class="module">
+        <h2>Today’s Note</h2>
+        <label class="field"><span>Title</span><input id="noteTitle" placeholder="What is this note about?" /></label>
+        <label class="field"><span>Note</span><textarea id="noteBody" placeholder="Write anything you want to keep in OYO Compass today."></textarea></label>
+        <button class="btn primary" id="addDailyNote">Save Note</button>
+      </div>
+      <div class="module accent">
+        <h2>Recent Notes</h2>
+        <div class="list">
+          ${(state.notes || [])
+            .map((note) => `<div class="item"><span class="tag">${escapeHtml(note.date)}</span><strong>${escapeHtml(note.title)}</strong><p class="muted">${escapeHtml(note.body)}</p></div>`)
+            .join("")}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function renderCards() {
   const activeCard = todayCard();
   const premiumAccess = canAccessPremium();
@@ -1083,7 +1519,7 @@ function renderExercises() {
         .map((exercise, index) =>
           exercise.tier === "Premium" && !premiumAccess
             ? renderLockedCard(exercise.title, "Premium exercise")
-            : `<div class="item"><span class="tag ${exercise.tier === "Premium" ? "premium" : ""}">${exercise.tier}</span><strong>${escapeHtml(exercise.title)}</strong><p class="muted">${escapeHtml(exercise.body)}</p><button class="btn small" data-exercise-index="${index}">Open Exercise</button></div>`
+            : `<div class="item"><div class="button-row"><span class="tag ${exercise.tier === "Premium" ? "premium" : ""}">${exercise.tier}</span><span class="tag">${escapeHtml(exercise.category || "Practice")}</span></div><strong>${escapeHtml(exercise.title)}</strong><p class="muted">${escapeHtml(exercise.body)}</p><button class="btn small" data-exercise-index="${index}">Open Exercise</button></div>`
         )
         .join("")}
         </div>
@@ -1184,7 +1620,7 @@ function renderLibrary() {
         .map((resource, index) =>
           resource.tier === "Premium" && !premiumAccess
             ? renderLockedCard(resource.title, resource.type)
-            : `<div class="item"><span class="tag ${resource.tier === "Premium" ? "premium" : ""}">${resource.tier}</span><strong>${escapeHtml(resource.title)}</strong><p class="muted">${escapeHtml(resource.type)}</p><p class="muted">${escapeHtml(resource.detail)}</p><button class="btn small" data-resource-index="${index}">Open Resource</button></div>`
+            : `<div class="item"><div class="button-row"><span class="tag ${resource.tier === "Premium" ? "premium" : ""}">${resource.tier}</span><span class="tag">${escapeHtml(resource.type)}</span></div><strong>${escapeHtml(resource.title)}</strong><p class="muted">${escapeHtml(resource.detail)}</p><button class="btn small" data-resource-index="${index}">Open Resource</button></div>`
         )
         .join("")}
         </div>
@@ -1195,26 +1631,55 @@ function renderLibrary() {
 
 function renderCommunity() {
   const premiumAccess = canAccessPremium();
+  const activeCategory = communityCategories.includes(state.activeCommunityCategory)
+    ? state.activeCommunityCategory
+    : "All";
+  const posts = (state.community || []).filter(
+    (post) => activeCategory === "All" || post.topic === activeCategory
+  );
   return `
     <section class="section-title">
-      <div><p class="eyebrow">Community</p><h2>A built-in circle for owned options.</h2></div>
+      <div><p class="eyebrow">Community</p><h2>A built-in circle for owned options.</h2><p>Share questions, wins, lifestyle moments, goals, gratitude, support, and business growth inside one OYO space.</p></div>
       ${premiumAccess ? `<span class="tag premium">Posting enabled</span>` : renderPremiumButton("Unlock full community")}
+    </section>
+    <section class="community-categories" aria-label="Community categories">
+      ${communityCategories
+        .map(
+          (category) =>
+            `<button class="btn small ${category === activeCategory ? "primary" : ""}" type="button" data-community-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`
+        )
+        .join("")}
     </section>
     <section class="module-grid two">
       <div class="module">
-        <h2>Share a Win</h2>
+        <h2>Share With The Circle</h2>
         ${
           premiumAccess
-            ? `<label class="field"><span>Post</span><textarea id="communityText" placeholder="What option did you own today?"></textarea></label><button class="btn primary" id="addPost">Post</button>`
+            ? `<label class="field"><span>Category</span><select id="communityTopic">${communityCategories
+                .filter((category) => category !== "All")
+                .map((category) => `<option ${category === activeCategory ? "selected" : ""}>${escapeHtml(category)}</option>`)
+                .join("")}</select></label><label class="field"><span>Post</span><textarea id="communityText" placeholder="Share a question, business win, lifestyle shift, goal, gratitude, or support request."></textarea></label><button class="btn primary" id="addPost">Post</button>`
             : `<div class="paywall"><strong>Free members can read the preview.</strong><p class="muted">Premium members can post, join circles, and access life, mindset, relationships, wellbeing, and business threads.</p>${renderPremiumButton("Upgrade")}</div>`
         }
+        <div class="community-prompts">
+          <div class="item"><span class="tag">Questions</span><p class="muted">What do you want support, clarity, or coaching around?</p></div>
+          <div class="item"><span class="tag">Business Wins</span><p class="muted">What invitation, follow-up, sale, lead, or brave business action did you take?</p></div>
+          <div class="item"><span class="tag">Lifestyle</span><p class="muted">What peaceful, healthy, free, or joyful life moment are you building this for?</p></div>
+        </div>
       </div>
       <div class="module">
-        <h2>Community Feed</h2>
+        <h2>${escapeHtml(activeCategory)} Feed</h2>
         <div class="list">
-          ${state.community
-            .map((post) => `<article class="community-post"><strong>${escapeHtml(post.name)} · ${escapeHtml(post.topic)}</strong><p class="muted">${escapeHtml(post.text)}</p></article>`)
-            .join("")}
+          ${
+            posts.length
+              ? posts
+                  .map(
+                    (post) =>
+                      `<article class="community-post"><span class="tag">${escapeHtml(post.topic || "Community")}</span><strong>${escapeHtml(post.name)}</strong><p class="muted">${escapeHtml(post.text)}</p></article>`
+                  )
+                  .join("")
+              : `<div class="item"><span class="tag">${escapeHtml(activeCategory)}</span><strong>No posts here yet.</strong><p class="muted">Be the first to open this category when premium posting is available.</p></div>`
+          }
         </div>
       </div>
     </section>
@@ -1381,6 +1846,48 @@ function bindEvents() {
     });
   });
 
+  document.querySelector("#saveOnboarding")?.addEventListener("click", () => {
+    const lifeAreas = [...document.querySelectorAll("[data-intro-area]:checked")].map((input) => input.value);
+    const primaryPath = document.querySelector("#introPrimaryPath")?.value || starterState.onboarding.primaryPath;
+    const desiredFeeling = document.querySelector("#introDesiredFeeling")?.value.trim() || "more aligned";
+    const currentChallenge = document.querySelector("#introChallenge")?.value.trim() || "finding the next honest step";
+    const biggestGoal = document.querySelector("#introGoal")?.value.trim() || "build more self-trust";
+    const supportStyle = document.querySelector("#introSupportStyle")?.value || starterState.onboarding.supportStyle;
+    const businessInterest = document.querySelector("#introBusinessInterest")?.value || starterState.onboarding.businessInterest;
+    state.onboarding = {
+      completed: true,
+      primaryPath,
+      desiredFeeling,
+      currentChallenge,
+      biggestGoal,
+      supportStyle,
+      businessInterest,
+      lifeAreas: lifeAreas.length ? lifeAreas : clone(starterState.onboarding.lifeAreas)
+    };
+    state.coachProfile.focus = `${primaryPath}: ${state.onboarding.lifeAreas.join(", ")}`;
+    state.coachProfile.resistance = currentChallenge;
+    state.coachProfile.preferredStyle = supportStyle;
+    state.futureSelf = `I am becoming someone who feels ${desiredFeeling}. I own my options in ${state.onboarding.lifeAreas.slice(0, 3).join(", ")} and I take honest steps toward ${biggestGoal}.`;
+    if (!state.goals.some((goal) => goal.title.toLowerCase() === biggestGoal.toLowerCase())) {
+      state.goals.unshift({ title: biggestGoal, progress: 10, area: primaryPath });
+    }
+    state.coachMessages = [
+      {
+        role: "coach",
+        text: personalizedWelcomeMessage()
+      }
+    ];
+    addMilestone("Completed personal compass setup");
+    saveState();
+    render();
+  });
+
+  document.querySelector("#skipOnboarding")?.addEventListener("click", () => {
+    state.onboarding = { ...clone(starterState.onboarding), completed: true };
+    saveState();
+    render();
+  });
+
   document.querySelector("#adminSaveSettings")?.addEventListener("click", async () => {
     try {
       const premiumPayment = document.querySelector("#adminPremiumPayment")?.value.trim() || "";
@@ -1458,6 +1965,14 @@ function bindEvents() {
     });
   });
 
+  document.querySelectorAll("[data-community-category]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeCommunityCategory = button.dataset.communityCategory;
+      saveState();
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-add-exercise]").forEach((button) => {
     button.addEventListener("click", () => {
       const title = button.dataset.addExercise;
@@ -1499,6 +2014,16 @@ function bindEvents() {
     if (!body) return;
     state.journal.unshift({ date: "Today", title, body });
     addEvidence(`Journaled: ${title}`);
+    saveState();
+    render();
+  });
+
+  document.querySelector("#addDailyNote")?.addEventListener("click", () => {
+    const title = document.querySelector("#noteTitle").value.trim() || "Daily note";
+    const body = document.querySelector("#noteBody").value.trim();
+    if (!body) return;
+    state.notes.unshift({ date: todayLabel(), title, body });
+    addEvidence(`Added daily note: ${title}`);
     saveState();
     render();
   });
@@ -1561,6 +2086,12 @@ function bindEvents() {
     render();
   });
 
+  document.querySelector("#retakeOnboarding")?.addEventListener("click", () => {
+    state.onboarding.completed = false;
+    saveState();
+    render();
+  });
+
   document.querySelector("#coachSend")?.addEventListener("click", sendCoachMessage);
   document.querySelector("#coachText")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") sendCoachMessage();
@@ -1577,7 +2108,9 @@ function bindEvents() {
   document.querySelector("#addPost")?.addEventListener("click", async () => {
     const input = document.querySelector("#communityText");
     if (!input.value.trim()) return;
-    const post = { name: state.user.name, topic: "Owned Option", text: input.value.trim() };
+    const topic = document.querySelector("#communityTopic")?.value || "Daily Wins";
+    const post = { name: state.user.name, topic, text: input.value.trim() };
+    state.activeCommunityCategory = topic;
     state.community.unshift(post);
     try {
       await addCommunityPost(cloudUser, post);
@@ -1600,10 +2133,14 @@ async function sendCoachMessage() {
   state.coachMessages.push(thinkingMessage);
   render();
   let reply = "";
-  try {
-    reply = await askAICoach(buildAICoachPayload(text));
-  } catch (error) {
-    reply = `${coachReply(text)}\n\nNote: I am using the built-in coach while the live AI coach is being connected.`;
+  if (appFeatures.useLiveAICoach) {
+    try {
+      reply = await askAICoach(buildAICoachPayload(text));
+    } catch (error) {
+      reply = coachReply(text);
+    }
+  } else {
+    reply = coachReply(text);
   }
   const index = state.coachMessages.indexOf(thinkingMessage);
   if (index >= 0) {
@@ -1618,6 +2155,7 @@ async function sendCoachMessage() {
 function buildAICoachPayload(message) {
   const growth = growthInsights();
   const coach = selectedCoach();
+  const intro = onboardingInsights();
   return {
     message,
     user: {
@@ -1638,6 +2176,8 @@ function buildAICoachPayload(message) {
       focus: growth.focus,
       pattern: growth.pattern,
       nextStep: growth.nextStep,
+      onboarding: state.onboarding,
+      livedMemory: intro.livedMemory,
       futureSelf: state.futureSelf,
       preferredStyle: state.coachProfile.preferredStyle,
       resistance: state.coachProfile.resistance,
@@ -1649,7 +2189,8 @@ function buildAICoachPayload(message) {
       actions: state.actions.slice(0, 8),
       gratitude: state.gratitude.slice(0, 8),
       vision: state.vision.slice(0, 8),
-      journal: state.journal.slice(0, 5)
+      journal: state.journal.slice(0, 5),
+      notes: state.notes.slice(0, 8)
     },
     recentMessages: state.coachMessages
       .filter((entry) => entry !== undefined && entry.text && entry.text !== `${coach.name} is listening...`)
@@ -1782,7 +2323,9 @@ function coachReply(text) {
   const lower = text.toLowerCase();
   const growth = growthInsights();
   const coach = selectedCoach();
+  const intro = onboardingInsights();
   const topic = detectCoachTopic(lower);
+  const intent = detectQuestionIntent(lower);
   const tone = coachTone(coach.id);
   const userName = state.user?.name || "you";
   const messageFocus = summarizeUserMessage(text);
@@ -1805,7 +2348,8 @@ function coachReply(text) {
         [
           `I am connecting this to your ${growth.stage.toLowerCase()} stage and your current pattern: ${growth.pattern.toLowerCase()}.`,
           `Your growth memory says the next useful move is: ${growth.nextStep.toLowerCase()}.`,
-          `This matters because your current focus is ${growth.focus.toLowerCase()}, not just solving one isolated problem.`
+          `This matters because your current focus is ${growth.focus.toLowerCase()}, not just solving one isolated problem.`,
+          intro.contextSentence
         ],
         turn
       );
@@ -1977,12 +2521,17 @@ function coachReply(text) {
 
   const reply = replies[topic] || replies.default;
   const format = pickCoachVariant(["standard", "compact", "deeper"], turn);
-  const answerLine = directQuestion ? `Answer: ${directCoachAnswer(topic, premiumAccess)}` : "";
+  const answerLine =
+    directQuestion || intent !== "share"
+      ? `Answer: ${answerSpecificQuestion({ topic, intent, text, premiumAccess, intro, growth })}`
+      : "";
   if (format === "compact") {
     return [
       `${opener} ${tone}`,
       answerLine,
       `${reply.reflection}`,
+      `Your compass says: ${intro.shortMemory}.`,
+      `What I am learning from your app: ${intro.livedMemory}`,
       `Here is the option: ${reply.reframe}`,
       `Do this next: ${reply.action}`,
       `Answer this: ${reply.question}`
@@ -1993,6 +2542,8 @@ function coachReply(text) {
       `${opener} ${tone}`,
       answerLine,
       `${reply.reflection} ${memoryLine}`,
+      `Your compass says: ${intro.shortMemory}. ${topic === "business" ? intro.businessSentence : ""}`,
+      `What I am learning from your app: ${intro.livedMemory}`,
       `What I notice: ${reply.reframe}`,
       `Practice to try now: ${reply.practice}`,
       `Your next owned option: ${reply.action}`,
@@ -2003,6 +2554,8 @@ function coachReply(text) {
     `${opener} ${tone}`,
     answerLine,
     `${reply.reflection} ${memoryLine}`,
+    `Your compass says: ${intro.shortMemory}.`,
+    `What I am learning from your app: ${intro.livedMemory}`,
     `Reframe: ${reply.reframe}`,
     `Practice: ${reply.practice}`,
     `Next step: ${reply.action}`,
@@ -2012,6 +2565,123 @@ function coachReply(text) {
 
 function isDirectQuestion(text) {
   return /\?$|^(how|what|why|when|where|should|can|could|do|does|is|are|am)\b/i.test(text.trim());
+}
+
+function detectQuestionIntent(lower) {
+  if (/(what should i do|what do i do|next step|where do i start|start|begin)/.test(lower)) return "nextStep";
+  if (/(how do i|how can i|help me|walk me through|steps|plan)/.test(lower)) return "howTo";
+  if (/(why am i|why do i|why can.t i|why can't i|keep doing|again)/.test(lower)) return "whyPattern";
+  if (/(should i|do i choose|decide|decision|which option|either)/.test(lower)) return "decision";
+  if (/(what do i say|message|text them|talk to|conversation|script|word)/.test(lower)) return "words";
+  if (/(i feel|i am feeling|i'm feeling|i feel like|sad|angry|hurt|lonely|overwhelmed|anxious)/.test(lower)) return "emotion";
+  if (/(affirmation|mantra|card|journal prompt|prompt)/.test(lower)) return "prompt";
+  return "share";
+}
+
+function answerSpecificQuestion({ topic, intent, text, premiumAccess, intro, growth }) {
+  const subject = extractQuestionSubject(text);
+  const options = {
+    nextStep: {
+      stuck: `Your next step is to make ${subject} smaller. Regulate first, then choose one action that can be completed in 10 minutes or less.`,
+      business: `Your next step is one clean business move connected to your life goal: invite, follow up, clarify your offer, or review the LWA pathway when you are ready.`,
+      relationships: `Your next step is to separate what you feel, what you need, and what request or boundary would protect your peace.`,
+      wellbeing: `Your next step is body-first: water, breath, food, rest, movement, or lowering the demand before solving the whole thing.`,
+      confidence: `Your next step is evidence. Do one small visible thing that proves you can trust yourself with ${subject}.`,
+      future: `Your next step is to ask what your future self would do in the next 20 minutes, then choose the smallest version of that.`,
+      goals: `Your next step is to turn ${subject} into one action for today and one action for this week.`,
+      default: `Your next step is to name the option, choose the smallest honest action, and create one piece of evidence today.`
+    },
+    howTo: {
+      stuck: `Move through this by naming the feeling, lowering the pressure, and taking one safe action before trying to feel fully ready.`,
+      business: `Build this by tying the business action to the life you want, then doing one income-producing step: invite, follow up, share, or learn.`,
+      relationships: `Handle this by writing the truth first, softening the delivery second, and choosing a clear request or boundary third.`,
+      wellbeing: `Support this by treating your energy as information. Care first, then decide from a steadier body.`,
+      confidence: `Build confidence by stacking proof: choose a small action, complete it, record it, then repeat.`,
+      future: `Practice future self by choosing one identity, one standard, and one action that matches that standard today.`,
+      goals: `Make progress by choosing one goal, one reason it matters, one tiny action, and one time you will do it.`,
+      default: `Start with your real life: what matters, what feels hard, what option is available, and what action would create evidence.`
+    },
+    whyPattern: {
+      default: `This pattern is probably trying to protect you from discomfort, disappointment, judgment, or overwhelm. We do not shame it; we thank it, then choose a smaller option that proves you are safe to move.`
+    },
+    decision: {
+      default: `Choose the option that best matches your future self, protects your peace, and creates honest evidence. If both choices are imperfect, pick the one that keeps you in self-respect.`
+    },
+    words: {
+      default: `Use simple words: "I want to be honest about what I need. I am choosing a calmer, clearer option here, and this is what I can do next." Adjust the sentence so it sounds like you.`
+    },
+    emotion: {
+      default: `The feeling gets to be here, but it does not get to own every option. Name it, breathe, then choose one kind action that supports the person you are becoming.`
+    },
+    prompt: {
+      default: `Use this prompt: "The option I am ready to own today is ____. The part of me that needs support is ____. The smallest evidence I can create is ____."`
+    },
+    share: {
+      default: directCoachAnswer(topic, premiumAccess)
+    }
+  };
+  const byIntent = options[intent] || options.share;
+  const answer = byIntent[topic] || byIntent.default || options.share.default;
+  return `${answer} I am matching this to your compass: ${intro.shortMemory}. Your current growth stage is ${growth.stage}.`;
+}
+
+function extractQuestionSubject(text) {
+  const clean = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[?.!]+$/, "");
+  if (!clean) return "this";
+  const withoutLead = clean.replace(/^(how do i|how can i|what should i do about|what do i do about|should i|can i|could i|help me|i need help with)\s+/i, "");
+  return withoutLead.length > 80 ? "this" : withoutLead || "this";
+}
+
+function personalizedWelcomeMessage() {
+  const coach = selectedCoach();
+  const intro = onboardingInsights();
+  return `${coach.name} here, ${state.user?.name || "there"}. I read your compass setup, and I will keep learning from your future self, vision board, journal, daily notes, gratitude, goals, and actions. Right now I am holding this: ${intro.shortMemory}. Start by telling me what is happening today, and I will help you choose the next option that fits your real life.`;
+}
+
+function onboardingInsights() {
+  const onboarding = state.onboarding || starterState.onboarding;
+  const areas = (onboarding.lifeAreas || []).slice(0, 4).join(", ") || "whole-life alignment";
+  const desiredFeeling = onboarding.desiredFeeling || "more aligned";
+  const goal = onboarding.biggestGoal || "build more self-trust";
+  const challenge = onboarding.currentChallenge || state.coachProfile.resistance || "finding the next honest step";
+  const supportStyle = onboarding.supportStyle || state.coachProfile.preferredStyle || "warm and practical";
+  const businessInterest = onboarding.businessInterest || "Maybe later";
+  const latestJournal = state.journal?.[0]
+    ? `${state.journal[0].title}: ${summarizeMemoryText(state.journal[0].body, 90)}`
+    : "no journal entry yet";
+  const latestNote = state.notes?.[0]
+    ? `${state.notes[0].title}: ${summarizeMemoryText(state.notes[0].body, 90)}`
+    : "no daily note yet";
+  const visionTheme = state.vision?.[0] || "a life that feels peaceful, free, and fully mine";
+  const activeGoal = state.goals?.[0]?.title || goal;
+  const nextAction = state.actions?.find((action) => !action.done)?.text || "choose one honest next step";
+  const gratitudeAnchor = state.gratitude?.[0] || "new choices";
+  const futureSelf = summarizeMemoryText(state.futureSelf, 110);
+  return {
+    shortMemory: `${areas}; desired feeling: ${desiredFeeling}; goal: ${activeGoal}; current challenge: ${challenge}`,
+    livedMemory: `Future self: ${futureSelf}. Vision: ${visionTheme}. Latest journal: ${latestJournal}. Latest note: ${latestNote}. Gratitude anchor: ${gratitudeAnchor}. Next action: ${nextAction}.`,
+    contextSentence: `Your setup says you want ${supportStyle.toLowerCase()} support with ${areas}, while moving toward ${activeGoal}. I am also learning from your future self, vision board, journal, daily notes, gratitude, goals, and daily actions.`,
+    businessSentence:
+      businessInterest.includes("Yes") || businessInterest.includes("curious")
+        ? "Business can be included as one option, but it should serve the life you want, not take over the whole compass."
+        : "I will keep business in the background unless you ask for it, because your setup says life coaching comes first."
+  };
+}
+
+function summarizeMemoryText(text, limit) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  return clean.length > limit ? `${clean.slice(0, limit - 3)}...` : clean;
+}
+
+function todayLabel() {
+  return new Date().toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
 }
 
 function directCoachAnswer(topic, premiumAccess) {
